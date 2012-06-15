@@ -6,13 +6,14 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
 import com.nevin.NanoHTTPD;
-import com.nevin.DownloadFileAsync.OnDownloadFinishedListener;
-import com.nevin.DownloadFileAsync.OnDownloadStartedListener;
-import com.nevin.DownloadFileAsync.OnProgressUpdateListener;
+import com.nevin.downloader.DownlaodStateListener.*;
+import com.nevin.downloader.*;
 
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnDismissListener;
 import android.os.Bundle;
 import android.os.Environment;
 import android.widget.TextView;
@@ -40,7 +41,7 @@ public class LocalClient extends Activity {
 			char last = '\0';
 			if( url != null && url.length() > 0 ) last = url.charAt( url.length() - 1 ) ;
 			if (!(last == '/')) {
-				Log.e(TAG,"url: "+url);
+				Log.d(TAG,"url: "+url);
 				String decodeUrl = decodeUri(url);
 				String fileName = decodeUrl.substring(decodeUrl.lastIndexOf("/")+1);
 				startDownload(fileName,url);
@@ -92,20 +93,29 @@ public class LocalClient extends Activity {
 
 	
 	private void startDownload(final String fileName, final String downloadUrl){
-		Log.e(TAG,"startDownload...: "+fileName);
-		Log.e(TAG,"startDownload...: "+downloadUrl);
+		Log.d(TAG,"startDownload...: "+fileName);
+		Log.d(TAG,"startDownload...: "+downloadUrl);
 		
-		DownloadFileAsync downloader = new DownloadFileAsync();
+		final DownloadFileAsync downloader = new DownloadFileAsync(this,fileName,downloadUrl);
 		downloader.setOnDownloadStartedListener(new OnDownloadStartedListener() {
 			@Override
-			public void onDownloadStarted() {
+			public void onDownloadStarted(String fileName, String downloadUrl,int startProgress) {
 				showDialog(DIALOG_DOWNLOAD_PROGRESS);
 				mProgressDialog.setMessage("downloading "+fileName);
+				mProgressDialog.setProgress(startProgress);
+				mProgressDialog.setOnDismissListener(new OnDismissListener() {
+					@Override
+					public void onDismiss(DialogInterface dialog) {
+						// TODO Auto-generated method stub
+						downloader.stopDownload();
+					}
+				});
 			}
 		});
 		downloader.setOnProgressUpdateListener(new OnProgressUpdateListener() {
 			@Override
-			public void onProgressUpdate(int progress) {
+			public void onProgressUpdate(String fileName, String downloadUrl,int progress) {
+				mProgressDialog.setMessage("downloading "+fileName);
 				mProgressDialog.setProgress(progress);
 			}
 		});
